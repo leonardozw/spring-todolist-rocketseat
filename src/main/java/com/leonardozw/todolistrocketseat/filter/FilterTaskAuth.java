@@ -24,28 +24,34 @@ public class FilterTaskAuth extends OncePerRequestFilter{
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        var authorization = request.getHeader("Authorization");
-        var encodedPass = authorization.substring("Basic".length()).trim();
+        var servletPath = request.getServletPath();
 
-        byte[] decodedBytePass = Base64.getDecoder().decode(encodedPass);
+        if(servletPath.startsWith("/tasks")){
+            var authorization = request.getHeader("Authorization");
+            var encodedPass = authorization.substring("Basic".length()).trim();
 
-        var decodedPassString = new String(decodedBytePass);
+            byte[] decodedBytePass = Base64.getDecoder().decode(encodedPass);
 
-        String credentials[] = decodedPassString.split(":");
-        String username = credentials[0];
-        String password = credentials[1];
+            var decodedPassString = new String(decodedBytePass);
 
-        var user = this.userRepository.findByUsername(username);
-        if(user == null){
-            response.sendError(401);
-            return;
-        }else{
-            var passVerified = BCrypt.verifyer().verify(password.toCharArray(), user.getPassword());
-            if(!passVerified.verified){
+            String credentials[] = decodedPassString.split(":");
+            String username = credentials[0];
+            String password = credentials[1];
+
+            var user = this.userRepository.findByUsername(username);
+            if(user == null){
                 response.sendError(401);
             }else{
-                filterChain.doFilter(request, response);
+                var passVerified = BCrypt.verifyer().verify(password.toCharArray(), user.getPassword());
+                if(passVerified.verified){
+                    request.setAttribute("userId", user.getId());
+                    filterChain.doFilter(request, response);
+                }else{
+                    response.sendError(401);
+                }
             }
+        }else{
+            filterChain.doFilter(request, response);
         }
     }
 
