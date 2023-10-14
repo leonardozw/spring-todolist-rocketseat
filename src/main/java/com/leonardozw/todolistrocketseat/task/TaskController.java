@@ -50,7 +50,7 @@ public class TaskController {
 
     //@PutMapping("{id}")
     @PutMapping
-    public TaskModel update(@RequestBody TaskModel taskModel, HttpServletRequest request/* , @PathVariable UUID id*/){
+    public ResponseEntity update(@RequestBody TaskModel taskModel, HttpServletRequest request/* , @PathVariable UUID id*/){
 
         /* Decided not to use this due to redundancy reasons
          * var task = this.taskRepository.findById(id).orElseThrow(()-> new RuntimeException("Task not found"));
@@ -59,8 +59,13 @@ public class TaskController {
          * 
          * return this.taskRepository.save(task);
          */
-        
-        return this.taskRepository.save(taskModel);
+
+        var id = request.getAttribute("userId");
+        if(id.toString().equals(taskModel.getUserId().toString())){
+            return ResponseEntity.status(200).body(this.taskRepository.save(taskModel));
+        }else{
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
     }
 
 }
